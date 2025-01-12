@@ -1,0 +1,62 @@
+volumes:
+  nextcloud-data:
+  nextcloud_apache_data:
+  nextcloud_php_data:
+  nextcloud-db:
+
+networks:
+  frontend:
+  backend:
+
+services:
+  nextcloud-app:
+    container_name: nextcloud
+    build: 
+      context: dockerfile
+      dockerfile: nextcloud.dockerfile
+    restart: always
+    volumes:
+      - nextcloud-data:/var/www/html
+      - nextcloud_apache_data:/etc/apache2
+      - nextcloud_php_data:/usr/local/etc/php/php.ini
+
+    environment:
+      - MYSQL_PASSWORD=nextcloud
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=nextcloud-db
+      - REDIS_HOST=redis
+      - OVERWRITEPROTOCOL=https
+      - PHP_UPLOAD_LIMIT=50G
+      - NEXTCLOUD_TRUSTED_DOMAINS=[gcsgameslab.com, www.gcsgameslab.com]
+      - OVERWRITEWEBROOT=
+
+    ports:
+      - 11000:80
+
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      - nextcloud-db
+      - redis
+
+  nextcloud-db:
+    image: mariadb:11.4
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - nextcloud-db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=nextcloud
+      - MYSQL_PASSWORD=nextcloud
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+    networks:
+      - backend
+  
+  redis:
+    image: redis:alpine
+    restart: always
+    networks:
+      - backend
