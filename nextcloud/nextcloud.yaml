@@ -1,8 +1,12 @@
+version: "3"
+
 volumes:
   nextcloud-data:
   nextcloud_apache_data:
-  nextcloud_php_data:
   nextcloud-db:
+  # npm-data:
+  # npm-ssl:
+  # npm-db:
 
 networks:
   frontend:
@@ -17,8 +21,6 @@ services:
     restart: always
     volumes:
       - nextcloud-data:/var/www/html
-      - nextcloud_apache_data:/etc/apache2
-      - nextcloud_php_data:/usr/local/etc/php/php.ini
 
     environment:
       - MYSQL_PASSWORD=nextcloud
@@ -28,17 +30,14 @@ services:
       - REDIS_HOST=redis
       - OVERWRITEPROTOCOL=https
       - PHP_UPLOAD_LIMIT=50G
-      - NEXTCLOUD_TRUSTED_DOMAINS=[gcsgameslab.com, www.gcsgameslab.com]
-      - OVERWRITEWEBROOT=
-
-    ports:
-      - 11000:80
+      - TRUSTED_DOMAINS=[]
 
     networks:
       - frontend
       - backend
     depends_on:
       - nextcloud-db
+      - npm-app
       - redis
 
   nextcloud-db:
@@ -54,7 +53,40 @@ services:
       - MYSQL_USER=nextcloud
     networks:
       - backend
+
+  # npm-app:
+  #   image: jc21/nginx-proxy-manager:latest
+  #   restart: always
+  #   ports:
+  #     - "80:80"
+  #     - "81:81"
+  #     - "443:443"
+  #   environment:
+  #     - DB_MYSQL_HOST=npm-db
+  #     - DB_MYSQL_PORT=3306
+  #     - DB_MYSQL_USER=npm
+  #     - DB_MYSQL_PASSWORD=nextcloud
+  #     - DB_MYSQL_NAME=npm
+  #   volumes:
+  #     - npm-data:/data
+  #     - npm-ssl:/etc/letsencrypt
+  #   networks:
+  #     - frontend
+  #     - backend  
   
+  # npm-db:
+  #   image: jc21/mariadb-aria:latest
+  #   restart: always
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=nextcloud
+  #     - MYSQL_DATABASE=npm
+  #     - MYSQL_USER=npm
+  #     - MYSQL_PASSWORD=nextcloud
+  #   volumes:
+  #     - npm-db:/var/lib/mysql
+  #   networks:
+  #     - backend
+
   redis:
     image: redis:alpine
     restart: always
